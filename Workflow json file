@@ -1,0 +1,539 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "daysInterval": 2,
+              "triggerAtHour": 2
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        160,
+        96
+      ],
+      "id": "a1971529-06a0-46d8-afba-718315c1e951",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"perplexity/sonar-pro\",\n  \"messages\": [\n    { \"role\": \"system\", \"content\": \"Be precise and concise.\" },\n    {\n      \"role\": \"user\",\n      \"content\": \"Find me five stories related to new discoveries in artificial intelligence from today or yesterday. The stories have to be interesting in general and not only to tech nerds. Label them 1 through 5\"\n    }\n  ],\n  \"temperature\": 0.2\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        432,
+        96
+      ],
+      "id": "d12e1c53-5dcf-4e14-b6cc-ae1ae7c771b7",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"perplexity/sonar-pro\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Be precise and concise.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"Find me 5 new, interesting and relevant stories related to problems caused through artificial intelligence. Do not look for technical problems but for problems in society, jobs and relationships\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        432,
+        400
+      ],
+      "id": "6840bcea-dd8c-4453-94ed-1215a127912a",
+      "name": "HTTP Request1"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const choice = item.json?.choices?.[0];\n\n  const message = choice?.message?.content || \"No message content found\";\n\n  return {\n    json: {\n      index: choice?.index ?? null,\n      role: choice?.message?.role ?? null,\n      finish_reason: choice?.finish_reason ?? null,\n      content: message,\n    },\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        96
+      ],
+      "id": "876fd52c-6188-4c87-9604-bfe7b4e8711e",
+      "name": "Code"
+    },
+    {
+      "parameters": {
+        "jsCode": "return items.map(item => {\n  const choice = item.json?.choices?.[0];\n\n  const message = choice?.message?.content || \"No message content found\";\n\n  return {\n    json: {\n      index: choice?.index ?? null,\n      role: choice?.message?.role ?? null,\n      finish_reason: choice?.finish_reason ?? null,\n      content: message,\n    },\n  };\n});\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        400
+      ],
+      "id": "a815f32c-0789-4573-92e6-859cf6a22b86",
+      "name": "Code1"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        944,
+        128
+      ],
+      "id": "f0a3b37b-6002-4bad-b42a-654da609adee",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const combinedContent = items\n  .map(item => item.json.content)\n  .join('\\n\\n');\n\n\nreturn [{\n  json: {\n    combinedContent\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1184,
+        128
+      ],
+      "id": "dd8c66cc-2e64-4dca-bbef-942edaf92636",
+      "name": "Code2"
+    },
+    {
+      "parameters": {
+        "promptType": "=define",
+        "text": "=Use that content to write a perfect LinkedIn Post: {{ $json.combinedContent }}",
+        "options": {
+          "systemMessage": "#Role: You are an expert for social media and LinkedIn and you know how to identify AI topics for perfect LinkedIn Posts. You select the topics for a Person posting about interesting and sometimes controversial AI topics on LinkedIn.\n\n#Task: Your task is to look at the topics provided and to identify which topic is the best to create a LinkedIn post about.\n\nMake sure to also check the google sheet containing already created posts of the past to avoid creating too similar posts in a row. The goal is to always talk about different topics.\n\nOnce you identified the topic, you write a perfect LinkedIn post about it.\n\nAdditionally you write a suitable image prompt so that the post can be posted together with an image that perfectly underlines the post idea.\n\n#Output format:\n\nYou always output two things:\n\nThe LinkedIn post in text form\nThe image prompt to create a suitable image.\n\n#Tools:\nYou have one tool\n\n#Tool1: A google sheet tool that allows you to check out the last posts you created to avoid repetition"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2,
+      "position": [
+        1376,
+        128
+      ],
+      "id": "a46b397d-8cd5-402b-ad36-95e6c0e03775",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "gpt-4o-mini"
+        },
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.2,
+      "position": [
+        1376,
+        336
+      ],
+      "id": "5b4eef04-9ada-4780-bdb3-4f2fb2dbf85c",
+      "name": "OpenAI Chat Model",
+      "credentials": {
+        "openAiApi": {
+          "id": "BPp2x6rqsONvHuaO",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "A tool that allows you to store a created LinkedIn post and image prompt in a google sheet",
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "19vnjxpIgOXC6k6d0Kad-PZWW5JR-dmocNP5CAV755zg",
+          "mode": "list",
+          "cachedResultName": "LinkedIn Automation",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19vnjxpIgOXC6k6d0Kad-PZWW5JR-dmocNP5CAV755zg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sayfa1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19vnjxpIgOXC6k6d0Kad-PZWW5JR-dmocNP5CAV755zg/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "Past LinkedIn Posts": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Past_LinkedIn_Posts', ``, 'string') }}",
+            "Suitable Image Prompt": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Suitable_Image_Prompt', ``, 'string') }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "Past LinkedIn Posts",
+              "displayName": "Past LinkedIn Posts",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Suitable Image Prompt",
+              "displayName": "Suitable Image Prompt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.6,
+      "position": [
+        1888,
+        368
+      ],
+      "id": "69a7151f-8694-4f14-b889-75a9576c68fe",
+      "name": "Add posts to google sheet",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "O4B8QWgxp4ubQe7K",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "A tool that allows you to review past LinkedIn posts to avoid creating too similar posts in a row",
+        "documentId": {
+          "__rl": true,
+          "value": "19vnjxpIgOXC6k6d0Kad-PZWW5JR-dmocNP5CAV755zg",
+          "mode": "list",
+          "cachedResultName": "LinkedIn Automation",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19vnjxpIgOXC6k6d0Kad-PZWW5JR-dmocNP5CAV755zg/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sayfa1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/19vnjxpIgOXC6k6d0Kad-PZWW5JR-dmocNP5CAV755zg/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.6,
+      "position": [
+        1520,
+        368
+      ],
+      "id": "cb95b944-b985-4f80-a033-7baa2a370e80",
+      "name": "Review past posts to avoid repetition",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "O4B8QWgxp4ubQe7K",
+          "name": "Google Sheets account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4o-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4O-MINI"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Your task is to look at the input provided here:\n\n{{ $json.output }}\n\nand to only seperate the LinkedIn post from the image prompt. Output ONLY the LinkedIn Post and the Image prompt, nothing else.\n\nAlways call the two json elements: \"LinkedInPost\" and \"ImagePrompt\"\n\nYou also store the LinkedInPost and the ImagePrompt in a google sheet with the tool that is provided to you."
+            }
+          ]
+        },
+        "jsonOutput": true,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        1744,
+        128
+      ],
+      "id": "f76444e6-dade-4ab2-b48a-853a2715d7f0",
+      "name": "OpenAI",
+      "credentials": {
+        "openAiApi": {
+          "id": "BPp2x6rqsONvHuaO",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.url }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2336,
+        128
+      ],
+      "id": "7d35ffda-b35c-4e79-b34c-8df3aa98fbb4",
+      "name": "HTTP Request3"
+    },
+    {
+      "parameters": {
+        "resource": "image",
+        "prompt": "={{ $json.message.content.ImagePrompt }}",
+        "options": {
+          "size": "1024x1024",
+          "returnImageUrls": true
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 1.8,
+      "position": [
+        2112,
+        128
+      ],
+      "id": "75a5e2b9-4733-4663-8899-421d8f1550e9",
+      "name": "Generate an image",
+      "credentials": {
+        "openAiApi": {
+          "id": "BPp2x6rqsONvHuaO",
+          "name": "n8n free OpenAI API credits"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "person": "HW5i6_lKWm",
+        "text": "={{ $('OpenAI').item.json.message.content.LinkedInPost }}",
+        "shareMediaCategory": "IMAGE",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.linkedIn",
+      "typeVersion": 1,
+      "position": [
+        2544,
+        128
+      ],
+      "id": "e6d78317-4365-457a-9b0c-97e878f5095d",
+      "name": "Create a post",
+      "credentials": {
+        "linkedInOAuth2Api": {
+          "id": "fb7s5A0GkfvMfAd3",
+          "name": "LinkedIn account 6"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Code",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request1": {
+      "main": [
+        [
+          {
+            "node": "Code1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code2": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Add posts to google sheet": {
+      "ai_tool": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review past posts to avoid repetition": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "OpenAI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI": {
+      "main": [
+        [
+          {
+            "node": "Generate an image",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request3": {
+      "main": [
+        [
+          {
+            "node": "Create a post",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate an image": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "2fb414e7-12c0-46b1-b505-9b0cffabd586",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "08528ec61bf6b91834d60c48a1990fd21eb538a083bdca6a0d126201d16b159a"
+  },
+  "id": "SEwBpSkklwLnIS35",
+  "tags": []
+}
