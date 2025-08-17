@@ -30,7 +30,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer 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"
+              "value": "Bearer YOUR_API_KEY"
             }
           ]
         },
@@ -57,7 +57,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer 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"
+              "value": "Bearer YOUR_API_KEY"
             }
           ]
         },
